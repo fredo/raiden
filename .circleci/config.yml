@@ -466,22 +466,26 @@ jobs:
           condition: << parameters.remote-host >>
           steps:
             - run:
-                name: SSH Port Forwarding To ARM Server
-                command: (ssh -N -L 2376:localhost:2376 ci@<< parameters.remote-host >>.ci.raiden.network) &
-            - run:
                 name: "set remote docker host"
                 command: echo 'export DOCKER_HOST=localhost:2376' >> ${BASH_ENV}
+            - run:
+                name: SSH Port Forwarding To ARM Server and Build Linux Binary
+                command: |
+                  source .circleci/get_archive_tag.sh
+                  ssh -N -L 2376:localhost:2376 ci@<< parameters.remote-host >>.ci.raiden.network
+                  make bundle-docker
+                  echo raiden-${ARCHIVE_TAG}-linux-<<parameters.architecture>>.tar.gz > dist/archive/_LATEST-linux-<<parameters.architecture>>.txt
       - unless:
           condition: << parameters.remote-host >>
           steps:
             - setup_remote_docker:
                 docker_layer_caching: true
-      - run:
-          name: Build Linux Binary
-          command: |
-            source .circleci/get_archive_tag.sh
-            make bundle-docker
-            echo raiden-${ARCHIVE_TAG}-linux-<<parameters.architecture>>.tar.gz > dist/archive/_LATEST-linux-<<parameters.architecture>>.txt
+            - run:
+                name: Build Linux Binary
+                command: |
+                  source .circleci/get_archive_tag.sh
+                  make bundle-docker
+                  echo raiden-${ARCHIVE_TAG}-linux-<<parameters.architecture>>.tar.gz > dist/archive/_LATEST-linux-<<parameters.architecture>>.txt
       - persist_to_workspace:
           root: "~"
           paths:
