@@ -943,10 +943,10 @@ workflows:
             - build-binary-linux-aarch64
             - build-binary-macos
 
-    triggers:
-      - schedule:
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only:
-                - master
+#    triggers:
+#      - schedule:
+#          cron: "0 0 * * *"
+#          filters:
+#            branches:
+#              only:
+#                - master
