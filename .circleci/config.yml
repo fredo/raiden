@@ -436,6 +436,11 @@ jobs:
         default: "medium"
         type: enum
         enum: ["small", "medium", "medium+", "large", "xlarge"]
+      remote-host:
+        description: "name of the arm server"
+        default: ""
+        type: enum
+        enum: ["", "armv7", "armv8"]
       architecture:
         description: "defines the architecture for which the binary is built"
         default: "x86_64"
@@ -459,11 +464,11 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - when:
-          condition: << parameters.architecture >> != "x86_64"
+          condition: << parameters.remote-host >>
           steps:
             - run:
                 name: SSH Port Forwarding To ARM Server
-                command: (ssh -N -L 2376:localhost:2376 ci@<< parameters.architecture >>.ci.raiden.network) &
+                command: (ssh -N -L 2376:localhost:2376 ci@<< parameters.remote-host >>.ci.raiden.network) &
             - run:
                 name: "set remote docker host"
                 command: echo 'export DOCKER_HOST=localhost:2376' >> ${BASH_ENV}
@@ -757,6 +762,7 @@ workflows:
       - build-binary-linux:
           name: build-binary-linux-armv7l
           resource: "small"
+          remote-host: "armv7"
           architecture: "armv7l"
           requires:
             - prepare-python-linux
@@ -766,6 +772,7 @@ workflows:
       - build-binary-linux:
           name: build-binary-linux-aarch64
           resource: "small"
+          remote-host: "armv8"
           architecture: "aarch64"
           requires:
             - prepare-python-linux
@@ -909,6 +916,7 @@ workflows:
       - build-binary-linux:
           name: build-binary-linux-armv7l
           resource: "small"
+          remote-host: "armv7"
           architecture: "armv7l"
           requires:
             - finalize
@@ -916,6 +924,7 @@ workflows:
       - build-binary-linux:
           name: build-binary-linux-aarch64
           resource: "small"
+          remote-host: "armv8"
           architecture: "aarch64"
           requires:
             - finalize
