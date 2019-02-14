@@ -461,8 +461,7 @@ jobs:
           py-version: << parameters.py-version >>
       - conditional-skip
       - config-path
-      - setup_remote_docker:
-          docker_layer_caching: true
+
       - when:
           condition: << parameters.remote-host >>
           steps:
@@ -472,6 +471,11 @@ jobs:
             - run:
                 name: "set remote docker host"
                 command: echo 'export DOCKER_HOST=localhost:2376' >> ${BASH_ENV}
+      - unless:
+          condition: << parameters.remote-host >>
+          steps:
+            - setup_remote_docker:
+                docker_layer_caching: true
       - run:
           name: Build Linux Binary
           command: |
