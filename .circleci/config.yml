@@ -472,7 +472,7 @@ jobs:
                 name: SSH Port Forwarding To ARM Server and Build Linux Binary
                 command: |
                   source .circleci/get_archive_tag.sh
-                  ssh -N -L 2376:localhost:2376 ci@<< parameters.remote-host >>.ci.raiden.network -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
+                  ssh -vv -N -L 2376:localhost:2376 ci@<< parameters.remote-host >>.ci.raiden.network -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
                   make bundle-docker
                   echo raiden-${ARCHIVE_TAG}-linux-<<parameters.architecture>>.tar.gz > dist/archive/_LATEST-linux-<<parameters.architecture>>.txt
       - unless:
