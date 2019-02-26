@@ -234,7 +234,10 @@ jobs:
     parameters:
       py-version:
         <<: *py-version-template
-
+      pylint:
+        description: "Specific Pylint version to be used"
+        default: "2.1.1"
+        type: string
     executor:
       name: docker
       py-version: << parameters.py-version >>
@@ -247,6 +250,12 @@ jobs:
       - run:
           name: Validate CircleCI Config
           command: python tools/check_circleci_config.py
+      - run:
+          name: Remove Current Pylint
+          command: pip uninstall pylint -y
+      - run:
+          name: Install Specific Pylint Version << parameters.pylint >>
+          command: pip install pylint==<< parameters.pylint >>
       - run:
           name: Run Lint
           command: make lint
@@ -651,8 +660,9 @@ workflows:
             - prepare-system-linux
 
       - lint:
-          name: lint-3.7
+          name: lint-3.7-pylint-2.1.1
           py-version: "3.7"
+          pylint: "2.1.1"
           requires:
             - prepare-python-linux-3.7
 
@@ -721,7 +731,7 @@ workflows:
 
       - finalize:
           requires:
-            - lint-3.7
+            - lint-3.7-pylint-2.1.1
             - mypy-3.7
             - test-integration-udp-3.7
             - test-integration-matrix-3.7
@@ -839,8 +849,9 @@ workflows:
           - prepare-system-linux
 
       - lint:
-          name: lint-3.7
+          name: lint-3.7-pylint-2.1.1
           py-version: "3.7"
+          pylint: "2.1.1"
           requires:
           - prepare-python-linux-3.7
 
@@ -909,7 +920,7 @@ workflows:
 
       - finalize:
           requires:
-          - lint-3.7
+          - lint-3.7-pylint-2.1.1
           - mypy-3.7
           - test-integration-udp-3.7
           - test-integration-matrix-3.7
