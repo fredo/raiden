@@ -666,7 +666,7 @@ class MatrixTransport(Runnable):
         response_queue = self._client.response_queue
         while response_queue:
             token_response: Tuple[UUID, JSONResponse] = response_queue.get(block=False)
-            self._client._handle_response(token_response[1], first_sync=True)
+            self._client._handle_response(token_response[1])
 
     def _initialize_room_inventory(self) -> None:
         msg = "The rooms can only be inventoried after the first sync."

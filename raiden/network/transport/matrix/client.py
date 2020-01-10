@@ -456,7 +456,13 @@ class GMatrixClient(MatrixClient):
 
     def _sync(self, timeout_ms: int = SYNC_TIMEOUT_MS) -> None:
         """ Reimplements MatrixClient._sync, add 'account_data' support to /sync """
-        log.debug("Sync called", node=node_address_from_userid(self.user_id), user_id=self.user_id)
+        log.debug(
+            "Sync called",
+            node=node_address_from_userid(self.user_id),
+            user_id=self.user_id,
+            iteration=self.sync_iteration,
+            sync_filter=self.sync_filter,
+        )
 
         time_before_sync = time.time()
         time_since_last_sync_in_seconds = time_before_sync - self.last_sync
@@ -473,7 +479,7 @@ class GMatrixClient(MatrixClient):
                 f"Processing Matrix response took {time_since_last_sync_in_seconds}s, "
                 f"poll timeout is {timeout_in_seconds}s."
             )
-
+        print(f"Address: {self.user_id}, filter: {self._sync_filter_id}")
         response = self.api.sync(
             since=self.sync_token, timeout_ms=timeout_ms, filter=self._sync_filter_id
         )

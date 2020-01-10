@@ -43,6 +43,9 @@ from raiden.utils.formatting import to_checksum_address
 from raiden.utils.typing import Address, Dict, List, cast
 from raiden.waiting import wait_for_network_state
 
+# log = structlog.get_logger(__name__)
+
+
 HOP1_BALANCE_PROOF = factories.BalanceProofSignedStateProperties(pkey=factories.HOP1_KEY)
 TIMEOUT_MESSAGE_RECEIVE = 15
 
@@ -1163,6 +1166,10 @@ def test_transport_does_not_receive_broadcast_rooms_updates(
     transport1._client._handle_response = partial(_handle_response, "t1")
     transport2._client._handle_response = partial(_handle_response, "t2")
 
+    # log.debug("Raiden Service Address", address=to_checksum_address(raiden_service0.address))
+    # log.debug("Raiden Service Address", address=to_checksum_address(raiden_service1.address))
+    # log.debug("Raiden Service Address", address=to_checksum_address(raiden_service2.address))
+
     transport0.start(raiden_service0, [], None)
     transport1.start(raiden_service1, [], None)
     transport2.start(raiden_service2, [], None)
@@ -1176,7 +1183,6 @@ def test_transport_does_not_receive_broadcast_rooms_updates(
     # we can receive broadcast messages
     assert transport2._client._sync_filter_id is not None
     transport2._client._sync_filter_id = None
-
     # Send another message to the broadcast room, if transport1 listens on the room it will
     # throw an exception
     message = Processed(message_identifier=1, signature=EMPTY_SIGNATURE)
