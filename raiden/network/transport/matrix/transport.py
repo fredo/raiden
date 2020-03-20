@@ -830,6 +830,8 @@ class MatrixTransport(Runnable):
                 pool.apply_async(_join_broadcast_room, args=(self, alias_prefix))
 
         pool.join(raise_error=True)
+        msg = "Could not join all configured broadcast rooms."
+        assert len(self._config.broadcast_rooms) == len(self._broadcast_rooms), msg
 
     def _initialize_sync(self) -> None:
         msg = "_initialize_sync requires the GMatrixClient to be properly authenticated."
@@ -1012,13 +1014,6 @@ class MatrixTransport(Runnable):
         self._set_room_id_for_address(address=peer_address, room_id=room_id)
 
     def _handle_member_join(self, room: Room) -> None:
-        if self._is_broadcast_room(room):
-            raise AssertionError(
-                f"Broadcast room events should be filtered in syncs: {room.aliases}."
-                f"Joined Broadcast Rooms: {list(self._broadcast_rooms.keys())}"
-                f"Should be joined to: {self._config.broadcast_rooms}"
-            )
-
         if self._has_multiple_partner_addresses(room):
             self._leave_unexpected_rooms(
                 [room], "Users from more than one address joined the room"
