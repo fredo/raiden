@@ -1582,6 +1582,8 @@ class MatrixTransport(Runnable):
         room: Optional[Room] = None
         # bigger loop to retry if channel was not created
         while not self._web_rtc_manager.has_ready_channel(partner_address):
+            rtc_partner = self._web_rtc_manager.get_rtc_partner(partner_address)
+
             # if room is not None that means we are at least in the second iteration
             # call hang up to sync with the partner about a retry
             if room is not None:
@@ -1597,22 +1599,26 @@ class MatrixTransport(Runnable):
                 )
                 self._web_rtc_manager.close(partner_address)
 
-            rtc_partner = self._web_rtc_manager.get_rtc_partner(partner_address)
             # we need to wait for a online partner and an existing room
             while (
                 self._get_room_for_address(partner_address, require_online_peer=True) is None
                 or not self._started
+                or not rtc_partner.partner_ready_event.is_set()
             ):
                 self.log.debug(
                     "Waiting for partner reachable to create rtc channel",
                     partner_address=to_checksum_address(partner_address),
+                    has_room=self._get_room_for_address(partner_address, require_online_peer=True)
+                    is None,
+                    transport_started=self._started,
+                    partner_ready=rtc_partner.partner_ready_event.is_set(),
                 )
                 # this can be ignored here since the underlying awaitables are only events
                 gevent.wait(  # pylint: disable=gevent-disable-wait
-                    [rtc_partner.partner_ready_event, self._stop_event], timeout=15, count=1
+                    [rtc_partner.partner_ready_event, self._stop_event],
+                    timeout=15,
+                    count=1,
                 )
-
-                rtc_partner.partner_ready_event.clear()
 
                 if self._stop_event.is_set():
                     return

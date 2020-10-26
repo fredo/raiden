@@ -22,6 +22,7 @@ class RTCPartner:
     peer_connection: RTCPeerConnection
     channel: Optional[RTCDataChannel] = field(default=None)
     partner_ready_event: Event = field(default_factory=Event)
+    closing_event: Event = field(default_factory=Event)
 
     def create_channel(self, node_address: Address) -> None:
         lower_address = my_place_or_yours(node_address, self.partner_address)
@@ -56,6 +57,7 @@ class WebRTCManager:
             self.address_to_rtc_partners[partner_address] = RTCPartner(
                 partner_address, RTCPeerConnection()
             )
+
         return self.address_to_rtc_partners[partner_address]
 
     def has_ready_channel(self, partner_address: Address) -> bool:
@@ -75,13 +77,11 @@ class WebRTCManager:
     def _spawn_web_rtc_coroutine(
         self,
         coroutine: Coroutine,
-        callback: Optional[Callable[[Any, Address], None]],
-        partner_address: Address,
+        callback: Optional[Callable[[Any, Any], None]],
+        **kwargs: Any,
     ) -> None:
         self.wrapped_coroutines.add(
-            spawn_coroutine(
-                coroutine=coroutine, callback=callback, partner_address=partner_address
-            )
+            spawn_coroutine(coroutine=coroutine, callback=callback, **kwargs)
         )
 
     def spawn_create_channel(self, partner_address: Address) -> None:
@@ -90,7 +90,9 @@ class WebRTCManager:
         coroutine = create_channel_coroutine(
             rtc_partner, self.node_address, self._handle_message_callback
         )
-        self._spawn_web_rtc_coroutine(coroutine, self._handle_sdp_callback, partner_address)
+        self._spawn_web_rtc_coroutine(
+            coroutine, self._handle_sdp_callback, partner_address=partner_address
+        )
 
     def spawn_set_remote_description(
         self, partner_address: Address, description: Dict[str, str]
@@ -111,17 +113,40 @@ class WebRTCManager:
             description=description,
             handle_message_callback=self._handle_message_callback,
         )
-        self._spawn_web_rtc_coroutine(coroutine, self._handle_sdp_callback, partner_address)
+        self._spawn_web_rtc_coroutine(
+            coroutine, self._handle_sdp_callback, partner_address=partner_address
+        )
+
+    def _connection_closed_callback(
+        self,
+        result: Any,
+        rtc_partner: RTCPartner,
+    ) -> None:
+        log.debug(
+            "Web rtc connection closed",
+            node=to_checksum_address(self.node_address),
+            partner_address=to_checksum_address(rtc_partner.partner_address),
+        )
+        self.address_to_rtc_partners.pop(rtc_partner.partner_address, None)
+        rtc_partner.partner_ready_event.set()
 
     def close(self, partner_address: Address) -> None:
-        rtc_partner = self.address_to_rtc_partners.pop(partner_address, None)
+        log.debug(
+            "Closing web rtc channel",
+            node=to_checksum_address(self.node_address),
+            partner_address=to_checksum_address(partner_address),
+        )
+
+        rtc_partner = self.address_to_rtc_partners.get(partner_address, None)
 
         if rtc_partner is not None:
+            rtc_partner.partner_ready_event.clear()
             aiortc_channel_close_callback(rtc_partner)
             self._spawn_web_rtc_coroutine(
-                coroutine=rtc_partner.peer_connection.close(),
-                callback=None,
-                partner_address=rtc_partner.partner_address,
+                rtc_partner.peer_connection.close(),
+                self._connection_closed_callback,
+                rtc_partner=rtc_partner,
+                web_rtc_manager=self,
             )
 
     def stop(self) -> None:
