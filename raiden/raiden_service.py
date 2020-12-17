@@ -911,8 +911,10 @@ class RaidenService(Runnable):
                 else:
                     pfs_capacity_updates.add(canonical_identifier)
 
+        log.debug("BCT Raiden Events", events=events)
         for event in events:
             if isinstance(event, PFS_UPDATE_FEE_EVENTS):
+
                 pfs_fee_updates.add(event.canonical_identifier)
             elif isinstance(event, PFS_UPDATE_CAPACITY_EVENTS):
                 pfs_capacity_updates.add(event.canonical_identifier)

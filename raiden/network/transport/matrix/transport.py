@@ -468,8 +468,8 @@ class MatrixTransport(Runnable):
 
         self._address_mgr.start()
 
-        assert asyncio.get_event_loop().is_running(), "the loop must be running"
-        self.log.debug("Asyncio loop is running", running=asyncio.get_event_loop().is_running())
+        # assert asyncio.get_event_loop().is_running(), "the loop must be running"
+        # self.log.debug("Asyncio loop is running", running=asyncio.get_event_loop().is_running())
 
         try:
             capabilities = capconfig_to_dict(self._config.capabilities_config)
@@ -756,8 +756,22 @@ class MatrixTransport(Runnable):
             room: name suffix as passed in config['broadcast_rooms'] list
             message: Message instance to be serialized and sent
         """
+
+        self.log.debug("BCT PUT BROADCAST MESSAGE IN QUEUE", message=message, room=room)
+        self.log.debug(
+            "BCT Right before the queue.put()",
+            queue_size=self._broadcast_queue.qsize(),
+        )
         self._broadcast_queue.put((room, message))
+        self.log.debug(
+            "BCT Right after the queue.put()",
+            queue_size=self._broadcast_queue.qsize(),
+        )
         self._broadcast_event.set()
+        self.log.debug(
+            "BCT Right after broadcast_event.set()",
+            queue_size=self._broadcast_queue.qsize(),
+        )
 
     def _broadcast_worker(self) -> None:
         def _broadcast(room_name: str, serialized_message: str) -> None:
@@ -775,24 +789,41 @@ class MatrixTransport(Runnable):
             assert existing_room, f"Unknown broadcast room: {room_name!r}"
 
             self.log.debug(
-                "Broadcast",
+                "BCT Broadcast",
                 room_name=room_name,
                 room=existing_room,
                 data=serialized_message.replace("\n", "\\n"),
             )
             existing_room.send_text(serialized_message)
+            self.log.debug("BCT Send text done")
 
         while not self._stop_event.ready():
             self._broadcast_event.clear()
             messages: Dict[str, List[Message]] = defaultdict(list)
+            self.log.debug(
+                "BCT Right before condition queue size",
+                queue_size=self._broadcast_queue.qsize(),
+            )
             while self._broadcast_queue.qsize() > 0:
-                room_name, message = self._broadcast_queue.get()
+                self.log.debug(
+                    "BCT Right before the .get()",
+                    queue_size=self._broadcast_queue.qsize(),
+                )
+                try:
+                    room_name, message = self._broadcast_queue.get(timeout=10)
+                except Exception:
+                    self.log.debug(
+                        "BCT Timeout on get()", queue_size=self._broadcast_queue.qsize()
+                    )
+                    continue
                 messages[room_name].append(message)
             for room_name, messages_for_room in messages.items():
                 serialized_messages = (
                     MessageSerializer.serialize(message) for message in messages_for_room
                 )
+                log.debug("BCT serialized messages", serialized_messages=serialized_messages)
                 for message_batch in make_message_batches(serialized_messages):
+                    self.log.debug("BCT Right before _broadcast()", message_batch=message_batch)
                     _broadcast(room_name, message_batch)
                 for _ in messages_for_room:
                     # Every message needs to be marked as done.

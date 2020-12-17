@@ -587,6 +587,7 @@ def join_broadcast_room(client: GMatrixClient, broadcast_room_alias: str) -> Roo
     """
     try:
         room = client.join_room(broadcast_room_alias)
+        log.debug("BCT joined broadcast room", room_id=room.room_id, alias=broadcast_room_alias)
         del client.rooms[room.room_id]
         return room
     except MatrixRequestError:

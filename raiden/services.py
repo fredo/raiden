@@ -50,7 +50,7 @@ def send_pfs_update(
     capacity_msg.sign(raiden.signer)
     raiden.transport.broadcast(constants.PATH_FINDING_BROADCASTING_ROOM, capacity_msg)
     log.debug(
-        "Sent a PFS Capacity Update",
+        "BCT Sent a PFS Capacity Update",
         node=to_checksum_address(raiden.address),
         message=capacity_msg,
         channel_state=channel_state,
@@ -62,7 +62,7 @@ def send_pfs_update(
 
         raiden.transport.broadcast(constants.PATH_FINDING_BROADCASTING_ROOM, fee_msg)
         log.debug(
-            "Sent a PFS Fee Update",
+            "BCT Sent a PFS Fee Update",
             node=to_checksum_address(raiden.address),
             message=fee_msg,
             channel_state=channel_state,
@@ -152,7 +152,7 @@ def update_monitoring_service_from_balance_proof(
                 return
 
     log.info(
-        "Received new balance proof, creating message for Monitoring Service.",
+        "BCT Received new balance proof, creating message for Monitoring Service.",
         node=to_checksum_address(raiden.address),
         balance_proof=new_balance_proof,
     )
